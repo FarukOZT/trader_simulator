@@ -6,14 +6,15 @@ using UnityEngine.UI;
 public class CoinMarketManager : MonoBehaviour
 {
     public TextMeshProUGUI balanceText;  // Balance text
-    public TextMeshProUGUI[] coinValueTexts;  // Coin deðerlerini gösterecek text'ler
+    public TextMeshProUGUI[] coinValueTexts = null;  // Coin deðerlerini gösterecek text'ler
     public TextMeshProUGUI[] coinNameTexts;  // Coin isimlerini gösterecek text'ler (yeni ekledim)
-    private float[] coinValues = new float[10];  // 10 coin için deðerler
-    private string[] coinNames = new string[10];  // 10 coin için isimler
+    private float[] coinValues;  // 10 coin için deðerler
+    private string[] coinNames;  // 10 coin için isimler
     public InputField quantityInputField;  // Kullanýcýnýn gireceði miktar
 
     private float balance = 100f;  // Baþlangýç bakiyesi (örnek)
     private int[] ownedCoins = new int[10];  // Kullanýcýnýn sahip olduðu coin sayýsý
+    private int selectedCoinIndex = -1; // Hiçbir coin seçilmediyse -1.
 
     void Start()
     {
@@ -26,7 +27,7 @@ public class CoinMarketManager : MonoBehaviour
 
         // Coin deðerlerini ekrana yazdýr
         DisplayCoinValues();
-
+        int length = Mathf.Min(coinNames.Length, coinNameTexts.Length, coinValues.Length);
         // Coin deðerlerini her 30 saniyede bir güncelle
         StartCoroutine(UpdateCoinValues());
     }
@@ -34,6 +35,8 @@ public class CoinMarketManager : MonoBehaviour
     // Coin isimlerini baþlat
     void InitializeCoinNames()
     {
+        coinNames = new string[10];  // Baþlangýçta 10 elemanlý bir dizi oluþturabilirsiniz
+
         coinNames[0] = "BTC";
         coinNames[1] = "ETH";
         coinNames[2] = "ADA";
@@ -49,34 +52,52 @@ public class CoinMarketManager : MonoBehaviour
     // Coin deðerlerini baþlat
     void InitializeCoinValues()
     {
-        for (int i = 0; i < 1; i++)
+        coinValues = new float[10];  // Baþlangýçta 10 elemanlý bir dizi oluþturabilirsiniz
+
+        for (int i = 0; i < coinNames.Length; i++)
         {
             coinValues[i] = Random.Range(1f, 100f);  // 1 ile 100 arasýnda rastgele deðerler
+            Debug.Log("acýlýs: "+coinValues[i] + coinNames[i] + i);
+
         }
     }
 
     // Coin deðerlerini ekranda göster
     void DisplayCoinValues()
     {
-        for (int i = 0; i < 1; i++)
+        Debug.Log(coinNameTexts.Length);
+        Debug.Log(coinNames.Length);
+
+        for (int i = 0; i < coinNames.Length; i++)
         {
-            // Coin ismini ve deðerini ekrana yazdýr
-            coinNameTexts[i].text = coinNames[i];  // Coin ismini yazdýr
-            coinValueTexts[i].text = "$" + coinValues[i].ToString("F2");  // Coin deðerini yazdýr
+            Debug.Log(coinNames[i]);
+
+            // Eðer coinNameTexts dizisinde yeterli öðe varsa, coin ismini güncelle
+            if (i < coinNameTexts.Length)
+            {
+                coinNameTexts[i].SetText(coinNames[i]);
+            }
+
+            // Eðer coinValueTexts dizisinde yeterli öðe varsa, coin deðerini güncelle
+            if (i < coinValueTexts.Length)
+            {
+                coinValueTexts[i].text = "$" + coinValues[i].ToString("F2");
+            }
+
         }
     }
 
-    // Coin deðerlerini her 30 saniyede bir güncelleyen Coroutine
+        // Coin deðerlerini her 30 saniyede bir güncelleyen Coroutine
     IEnumerator UpdateCoinValues()
     {
         while (true)
         {
             yield return new WaitForSeconds(0.5f);  // 30 saniye bekle
 
-            for (int i = 0; i < 1; i++)
+            for (int i = 0; i < coinNameTexts.Length; i++)
             {
                 // %20'ye kadar deðiþim
-                float changeAmount = coinValues[i] * Random.Range(-0.2f, 0.2f);
+                float changeAmount = coinValues[i] * Random.Range(-0.02f, 0.02f);
                 coinValues[i] += changeAmount;
 
                 // Coin deðerlerini güncelle ve ekrana yazdýr
@@ -84,10 +105,15 @@ public class CoinMarketManager : MonoBehaviour
             }
         }
     }
+    public void SelectCoin(int index)
+    {
+        selectedCoinIndex = index;
+        Debug.Log($"Seçilen Coin: {coinNames[selectedCoinIndex]} - Deðer: ${coinValues[selectedCoinIndex]:F2}");
+    }
 
     public void BuyCoin()
     {
-        int coinIndex = 0;  // Sabit bir coin index deðeri
+        int coinIndex = selectedCoinIndex;  // Sabit bir coin index deðeri
         float totalCost = coinValues[coinIndex] * 1;  // 1 coin almak
         if (balance >= totalCost)
         {
@@ -96,6 +122,8 @@ public class CoinMarketManager : MonoBehaviour
 
             balanceText.text = "$" + balance.ToString("F2");
             DisplayCoins();
+            Debug.Log("deðer: "+coinValues[coinIndex]);
+
         }
         else
         {
@@ -106,7 +134,7 @@ public class CoinMarketManager : MonoBehaviour
 
     public void SellCoin()
     {
-        int coinIndex = 0;  // Sabit bir coin index deðeri
+        int coinIndex = selectedCoinIndex;  // Sabit bir coin index deðeri
         if (ownedCoins[coinIndex] > 0)  // Coin var mý?
         {
             float sellPrice = coinValues[coinIndex] * 0.9f;  // Satýþ fiyatý, coin'in deðerinin %90'ý olacak
